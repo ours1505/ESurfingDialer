@@ -1,4 +1,4 @@
-name: Build ESurfingDialer with Gradle
+name: Build ESurfingDialer
 
 on:
   workflow_dispatch:
@@ -10,15 +10,53 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            output: ESurfingDialer-windows-amd64.exe
+          - goos: windows
+            goarch: arm64
+            output: ESurfingDialer-windows-arm64.exe
+          - goos: linux
+            goarch: amd64
+            output: ESurfingDialer-linux-amd64
+          - goos: linux
+            goarch: arm64
+            output: ESurfingDialer-linux-arm64
+          - goos: linux
+            goarch: arm
+            goarm: 7
+            output: ESurfingDialer-linux-armv7
+          - goos: linux
+            goarch: mipsle
+            output: ESurfingDialer-linux-mipsle
+          - goos: darwin
+            goarch: amd64
+            output: ESurfingDialer-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            output: ESurfingDialer-darwin-arm64
+    
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          java-version: '23'
-          distribution: 'zulu'
-      - name: Build with Gradle
-        run: ./gradlew shadowJar
-      - uses: actions/upload-artifact@v4
+          go-version: '1.21'
+      
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: |
+          go build -o ${{ matrix.output }} -ldflags="-s -w" ./cmd/client
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: ESurfingDialer-artifact
-          path: build/libs/
+          name: ${{ matrix.output }}
+          path: ${{ matrix.output }}
