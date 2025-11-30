@@ -27,6 +27,9 @@ func main() {
 	macAddr := flag.String("m", "", "MAC address (e.g., aa:bb:cc:dd:ee:ff)")
 	flag.StringVar(macAddr, "mac", "", "MAC address (e.g., aa:bb:cc:dd:ee:ff)")
 	
+	iface := flag.String("i", "", "Network interface to bind (e.g., eth0, wan)")
+	flag.StringVar(iface, "interface", "", "Network interface to bind (e.g., eth0, wan)")
+	
 	flag.Parse()
 
 	if *user == "" || *password == "" {
@@ -64,6 +67,10 @@ func main() {
 	states.RefreshStates()
 	if *macAddr != "" {
 		states.MacAddress = *macAddr
+	}
+	if *iface != "" {
+		states.Interface = *iface
+		fmt.Printf("Binding to interface: %s\n", *iface)
 	}
 	c.Run()
 }

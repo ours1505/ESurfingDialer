@@ -8,20 +8,21 @@ import (
 )
 
 var (
-	ClientID   string
-	AlgoID     string
-	MacAddress string
-	Ticket     string
-	UserIP     string
-	ACIP       string
-	IsRunning  bool = true
-	SchoolID   string
-	Domain     string
-	Area       string
-	TicketURL  string
-	AuthURL    string
+	ClientID    string
+	AlgoID      string
+	MacAddress  string
+	Ticket      string
+	UserIP      string
+	ACIP        string
+	IsRunning   bool = true
+	SchoolID    string
+	Domain      string
+	Area        string
+	TicketURL   string
+	AuthURL     string
 	ExtraCfgURL = make(map[string]string)
-	IsLogged   bool
+	IsLogged    bool
+	Interface   string // Network interface name for binding (e.g., eth0, wan)
 )
 
 // RefreshStates refreshes the client state with new random values

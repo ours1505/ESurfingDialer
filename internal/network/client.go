@@ -2,10 +2,12 @@ package network
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 
@@ -20,14 +22,67 @@ type NetResult struct {
 }
 
 // CreateHTTPClient creates an HTTP client with custom redirect handling
+// If states.Interface is set, the client will bind to that network interface
 func CreateHTTPClient() *http.Client {
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			dialer := &net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
+			
+			// If interface is specified, bind to it
+			if states.Interface != "" {
+				localAddr, err := getInterfaceAddr(states.Interface)
+				if err != nil {
+					fmt.Printf("Warning: Failed to get interface %s address: %v\n", states.Interface, err)
+				} else {
+					dialer.LocalAddr = &net.TCPAddr{IP: localAddr}
+				}
+			}
+			
+			return dialer.DialContext(ctx, network, addr)
+		},
+	}
+	
 	return &http.Client{
-		Timeout: 10 * time.Second,
+		Transport: transport,
+		Timeout:   10 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			// Don't follow redirects automatically, we'll handle them manually
 			return http.ErrUseLastResponse
 		},
 	}
+}
+
+// getInterfaceAddr returns the first IPv4 address of the specified network interface
+func getInterfaceAddr(ifaceName string) (net.IP, error) {
+	iface, err := net.InterfaceByName(ifaceName)
+	if err != nil {
+		return nil, fmt.Errorf("interface %s not found: %v", ifaceName, err)
+	}
+	
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get addresses for %s: %v", ifaceName, err)
+	}
+	
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		}
+		
+		// Return first IPv4 address
+		if ip != nil && ip.To4() != nil {
+			return ip, nil
+		}
+	}
+	
+	return nil, fmt.Errorf("no IPv4 address found on interface %s", ifaceName)
 }
 
 // Post sends a POST request with encrypted data
